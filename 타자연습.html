@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>별별 타자 - 손가락 가이드</title>
+    <style>
+        :root { --main: #4facfe; --bg: #f8fbff; --L-color: #3498db; --R-color: #e91e63; }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Pretendard', sans-serif; }
+        body { background: var(--bg); display: flex; flex-direction: column; align-items: center; min-height: 100vh; padding: 20px; }
+
+        /* 상단 정보 */
+        .header { text-align: center; margin-bottom: 20px; }
+        .target-box { background: white; padding: 30px; border-radius: 25px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); margin-bottom: 20px; min-width: 300px; }
+        .target-char { font-size: 80px; font-weight: 900; color: var(--main); }
+        .stats { display: flex; gap: 20px; justify-content: center; margin-bottom: 10px; font-weight: bold; }
+
+        /* 손가락 가이드 레이아웃 */
+        .visual-guide { display: flex; gap: 50px; align-items: center; margin-bottom: 30px; background: white; padding: 20px; border-radius: 30px; box-shadow: 0 5px 15px rgba(0,0,0,0.05); }
+        .hand { display: flex; gap: 10px; }
+        .finger { width: 35px; height: 60px; background: #eee; border-radius: 20px; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: bold; transition: 0.3s; color: #888; border: 2px solid #ddd; }
+        
+        /* 손가락 활성화 색상 */
+        .finger.active-L { background: var(--L-color); color: white; transform: translateY(-10px); border-color: #2980b9; box-shadow: 0 5px 15px rgba(52, 152, 219, 0.4); }
+        .finger.active-R { background: var(--R-color); color: white; transform: translateY(-10px); border-color: #c2185b; box-shadow: 0 5px 15px rgba(233, 30, 99, 0.4); }
+
+        /* 키보드 레이아웃 */
+        .keyboard { background: #333; padding: 15px; border-radius: 15px; display: flex; flex-direction: column; gap: 5px; box-shadow: 0 10px 0 #111; }
+        .kb-row { display: flex; gap: 5px; justify-content: center; }
+        .key { width: 45px; height: 45px; background: #444; color: white; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 14px; transition: 0.1s; border-bottom: 3px solid #222; }
+        .key.active { background: #ffd43b; color: black; border-bottom-color: #b8950c; transform: translateY(2px); }
+        .key.wrong { background: #ff4757; }
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <div class="stats">
+        <span>타율: <span id="wpm">0</span></span>
+        <span>정확도: <span id="acc">100</span>%</span>
+        <span>오타: <span id="err" style="color:red;">0</span></span>
+    </div>
+    <div class="target-box">
+        <div id="target" class="target-char">ㅁ</div>
+    </div>
+</div>
+
+<div class="visual-guide">
+    <div class="hand" id="hand-left">
+        <div class="finger" id="f-L4">새끼</div>
+        <div class="finger" id="f-L3">약지</div>
+        <div class="finger" id="f-L2">중지</div>
+        <div class="finger" id="f-L1">검지</div>
+    </div>
+    <div style="font-weight: 900; color: #ccc;">SPACE</div>
+    <div class="hand" id="hand-right">
+        <div class="finger" id="f-R1">검지</div>
+        <div class="finger" id="f-R2">중지</div>
+        <div class="finger" id="f-R3">약지</div>
+        <div class="finger" id="f-R4">새끼</div>
+    </div>
+</div>
+
+<div class="keyboard">
+    <div class="kb-row" id="row1"></div>
+    <div class="kb-row" id="row2"></div>
+    <div class="kb-row" id="row3"></div>
+</div>
+
+<script>
+    const r1 = [
+        {c:'ㅂ', k:'q', f:'L4'}, {c:'ㅈ', k:'w', f:'L3'}, {c:'ㄷ', k:'e', f:'L2'}, {c:'ㄱ', k:'r', f:'L1'}, {c:'ㅅ', k:'t', f:'L1'},
+        {c:'ㅛ', k:'y', f:'R1'}, {c:'ㅕ', k:'u', f:'R1'}, {c:'ㅑ', k:'i', f:'R2'}, {c:'ㅐ', k:'o', f:'R3'}, {c:'ㅔ', k:'p', f:'R4'}
+    ];
+    const r2 = [
+        {c:'ㅁ', k:'a', f:'L4'}, {c:'ㄴ', k:'s', f:'L3'}, {c:'ㅇ', k:'d', f:'L2'}, {c:'ㄹ', k:'f', f:'L1'}, {c:'ㅎ', k:'g', f:'L1'},
+        {c:'ㅗ', k:'h', f:'R1'}, {c:'ㅓ', k:'j', f:'R1'}, {c:'ㅏ', k:'k', f:'R2'}, {c:'ㅣ', k:'l', f:'R3'}
+    ];
+    const r3 = [
+        {c:'ㅋ', k:'z', f:'L4'}, {c:'ㅌ', k:'x', f:'L3'}, {c:'ㅊ', k:'c', f:'L2'}, {c:'ㅍ', k:'v', f:'L1'}, {c:'ㅠ', k:'b', f:'L1'},
+        {c:'ㅜ', k:'n', f:'R1'}, {c:'ㅡ', k:'m', f:'R1'}
+    ];
+
+    const allKeys = [...r1, ...r2, ...r3];
+    let target = null;
+    let stats = { total:0, correct:0, error:0, start: Date.now() };
+
+    function drawKeyboard() {
+        [r1, r2, r3].forEach((row, i) => {
+            const el = document.getElementById(`row${i+1}`);
+            row.forEach(item => {
+                const keyDiv = document.createElement('div');
+                keyDiv.className = 'key';
+                keyDiv.id = 'k-' + item.k;
+                keyDiv.innerText = item.c;
+                el.appendChild(keyDiv);
+            });
+        });
+    }
+
+    function next() {
+        target = allKeys[Math.floor(Math.random() * allKeys.length)];
+        document.getElementById('target').innerText = target.c;
+
+        // 키보드 강조 초기화 및 설정
+        document.querySelectorAll('.key').forEach(k => k.classList.remove('active'));
+        document.getElementById('k-' + target.k).classList.add('active');
+
+        // 손가락 가이드 초기화 및 설정
+        document.querySelectorAll('.finger').forEach(f => f.className = 'finger');
+        const fingerEl = document.getElementById('f-' + target.f);
+        if(target.f.startsWith('L')) fingerEl.classList.add('active-L');
+        else fingerEl.classList.add('active-R');
+    }
+
+    window.addEventListener('keydown', (e) => {
+        if(e.repeat) return;
+        const input = e.key.toLowerCase();
+        stats.total++;
+
+        const keyEl = document.getElementById('k-' + target.k);
+        if(input === target.k) {
+            stats.correct++;
+            keyEl.style.background = '#2ed573';
+            setTimeout(() => { keyEl.style.background = ''; next(); }, 150);
+        } else {
+            stats.error++;
+            keyEl.classList.add('wrong');
+            setTimeout(() => keyEl.classList.remove('wrong'), 200);
+        }
+        updateUI();
+    });
+
+    function updateUI() {
+        document.getElementById('err').innerText = stats.error;
+        document.getElementById('acc').innerText = stats.total === 0 ? 100 : Math.floor((stats.correct/stats.total)*100);
+        const elapsed = (Date.now() - stats.start) / 60000;
+        document.getElementById('wpm').innerText = Math.floor((stats.correct/5)/elapsed) || 0;
+    }
+
+    drawKeyboard();
+    next();
+</script>
+</body>
+</html>
